@@ -57,6 +57,9 @@ enum box {
     BOXGPSHOME,
     BOXGPSHOLD,
   #endif
+  #if SONAR
+   BOXSONAR,
+  #endif
   #if defined(FIXEDWING) || defined(HELICOPTER)
     BOXPASSTHRU,
   #endif
@@ -123,6 +126,9 @@ typedef struct {
   uint8_t PASSTHRU_MODE :1 ;
   uint8_t GPS_FIX :1 ;
   uint8_t GPS_FIX_HOME :1 ;
+  #if SONAR
+  uint8_t SONAR_MODE : 1;
+  #endif
   uint8_t SMALL_ANGLES_25 :1 ;
   uint8_t CALIBRATE_MAG :1 ;
   uint8_t VARIO_MODE :1;

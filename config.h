@@ -209,6 +209,24 @@
       //#define SENSORS_TILT_45DEG_RIGHT        // rotate the FRONT 45 degres clockwise
       //#define SENSORS_TILT_45DEG_LEFT         // rotate the FRONT 45 degres counterclockwise
 
+/* Generic sonar: hc-sr04, srf04, dyp-me007, all generic sonar with echo/pulse pin
+default pulse is PH6/12, echo is PB4/11
+*/
+#define SONAR_GENERIC_ECHOPULSE 
+#define SONAR_GENERIC_SCALE 58            //scale for ranging conversion (hcsr04 is 58)
+#define SONAR_GENERIC_MAX_RANGE 500         //cm (could be more)
+#define SONAR_GENERIC_TRIGGER_PIN 11      // motor 12
+#define SONAR_GENERIC_ECHO_PIN 8         // aux2
+
+/************************* Sonar alt hold / precision / ground collision keeper *******/
+#define SONAR_MAX_HOLD 400               //cm, kind of error delimiter, for now to avoid rocket climbing, only usefull if no baro
+
+//if using baro + sonar       
+#define SONAR_BARO_FUSION_LC 100         //cm, baro/sonar readings fusion, low cut, below = full sonar
+#define SONAR_BARO_FUSION_HC SONAR_MAX_HOLD   //cm, baro/sonar readings fusion, high cut, above = full baro
+#define SONAR_BARO_FUSION_RATIO 0.0         //0.0-1.0,  baro/sonar readings fusion, amount of each sensor value, 0 = proportionnel between LC and HC
+#define SONAR_BARO_LPF_LC 0.9f 
+#define SONAR_BARO_LPF_HC 0.9f
 
 /*************************************************************************************************/
 /*****************                                                                 ***************/
@@ -385,7 +403,7 @@
     /*********************************    Aux 2 Pin     ***********************************/
       /* possibility to use PIN8 or PIN12 as the AUX2 RC input (only one, not both)
          it deactivates in this case the POWER PIN (pin 12) or the BUZZER PIN (pin 8) */
-      #define RCAUXPIN8
+      //#define RCAUXPIN8
       //#define RCAUXPIN12
 
 
@@ -660,7 +678,7 @@
        You have to use at least I2CGpsNav code r33 */
     #define I2C_GPS
     // If your I2C GPS board has Sonar support enabled
-    #define I2C_GPS_SONAR
+    //#define I2C_GPS_SONAR
 
     /* GPS data readed from Misio-OSD - GPS module connected to OSD, and MultiWii read GPS data from OSD - tested and working OK ! */
     //#define GPS_FROM_OSD

@@ -70,6 +70,9 @@ const char boxnames[] PROGMEM = // names for dynamic generation of config GUI
     "GPS HOME;"
     "GPS HOLD;"
   #endif
+  #if SONAR
+    "SONAR;"
+  #endif
   #if defined(FIXEDWING) || defined(HELICOPTER)
     "PASSTHRU;"
   #endif
@@ -121,6 +124,9 @@ const uint8_t boxids[] PROGMEM = {// permanent IDs associated to boxes. This way
     10, //"GPS HOME;"
     11, //"GPS HOLD;"
   #endif
+  #if SONAR
+    22, //"SONAR;"
+  #endif
   #if defined(FIXEDWING) || defined(HELICOPTER)
     12, //"PASSTHRU;"
   #endif
@@ -152,6 +158,9 @@ uint16_t cycleTime = 0;     // this is the number in micro second to achieve a f
 uint16_t calibratingA = 0;  // the calibration is done in the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 uint16_t calibratingB = 0;  // baro calibration = get new ground pressure value
 uint16_t calibratingG;
+#if SONAR
+uint16_t calibratingS = 0; // sonar calibration = get new ground altitude
+#endif
 int16_t  magHold,headFreeModeHold; // [-180;+180]
 uint8_t  vbatMin = VBATNOMINAL;  // lowest battery voltage in 0.1V steps
 uint8_t  rcOptions[CHECKBOXITEMS];
@@ -627,6 +636,9 @@ void setup() {
   #endif
   calibratingG = 512;
   calibratingB = 200;  // 10 seconds init_delay + 200 * 25 ms = 15 seconds before ground pressure settles
+  #if SONAR
+  calibratingS = 10;
+  #endif
   #if defined(POWERMETER)
     for(uint8_t j=0; j<=PMOTOR_SUM; j++) pMeter[j]=0;
   #endif
@@ -717,6 +729,9 @@ void go_arm() {
         #ifdef POWERMETER_HARD
           powerValueMaxMAH = 0;
         #endif
+      #endif
+      #if SONAR
+      calibratingS = 10;
       #endif
       #ifdef LOG_PERMANENT
         plog.arm++;           // #arm events
@@ -848,6 +863,9 @@ void loop () {
           #if BARO
             calibratingB=10;  // calibrate baro to new ground level (10 * 25 ms = ~250 ms non blocking)
           #endif
+          #if SONAR
+            calibratingS = 10;
+          #endif
         }
         #if defined(INFLIGHT_ACC_CALIBRATION)  
          else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_HI) {    // Inflight ACC calibration START/STOP
@@ -973,7 +991,28 @@ void loop () {
         f.HORIZON_MODE = 0;
       }
     #endif
+    #if SONAR
+      if (rcOptions[BOXSONAR]) {
+         if (f.SONAR_MODE == 0) {
+            f.SONAR_MODE = 1;
 
+            AltHold = alt.EstAlt;
+
+#if defined(ALT_HOLD_THROTTLE_MIDPOINT)
+            initialThrottleHold = ALT_HOLD_THROTTLE_MIDPOINT;
+#else
+            initialThrottleHold = rcCommand[THROTTLE];
+#endif
+
+            errorAltitudeI = 0;
+            BaroPID = 0;
+            //f.THROTTLE_IGNORED = 0;
+         }
+      }
+      else {
+         f.SONAR_MODE = 0;
+      }
+    #endif
     if (rcOptions[BOXARM] == 0) f.OK_TO_ARM = 1;
     #if !defined(GPS_LED_INDICATOR)
       if (f.ANGLE_MODE || f.HORIZON_MODE) {STABLEPIN_ON;} else {STABLEPIN_OFF;}
@@ -1102,7 +1141,7 @@ void loop () {
         #endif
       case 2:
         taskOrder++;
-        #if BARO
+        #if BARO | SONAR
           if (getEstimatedAltitude() !=0) break;
         #endif    
       case 3:
@@ -1159,11 +1198,11 @@ void loop () {
     } else magHold = att.heading;
   #endif
 
-  #if BARO && (!defined(SUPPRESS_BARO_ALTHOLD))
+  #if (BARO | SONAR) && (!defined(SUPPRESS_BARO_ALTHOLD))
     /* Smooth alt change routine , for slow auto and aerophoto modes (in general solution from alexmos). It's slowly increase/decrease 
      * altitude proportional to stick movement (+/-100 throttle gives about +/-50 cm in 1 second with cycle time about 3-4ms)
      */
-    if (f.BARO_MODE) {
+    if (f.BARO_MODE || f.SONAR_MODE) {
       static uint8_t isAltHoldChanged = 0;
       static int16_t AltHoldCorr = 0;
       if (abs(rcCommand[THROTTLE]-initialThrottleHold)>ALT_HOLD_THROTTLE_NEUTRAL_ZONE) {
